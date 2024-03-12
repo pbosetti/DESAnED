@@ -1,0 +1,10 @@
+/.quarto*
+**/rsconnect/**
+_publish.yml
+.Rhistory
+
+*_cache/*
+*_files/*
+/*.html
+images/*.graffle
+.Rproj.user
