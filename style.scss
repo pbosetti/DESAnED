@@ -1,17 +1,21 @@
 /*-- scss:defaults --*/
 
+$signature-color: #880000;
 $presentation-font-size-root: 30px;
-$presentation-heading-color: #880000;
+$presentation-heading-color: $signature-color;
 $code-block-font-size: 0.75em;
+$body-bg: #ffffff;
 
 /*-- scss:rules --*/
+
+
 
 .reveal a {
   line-height: 1.3em;
 }
 
 .reveal strong {
-  color: #880000;
+  color: $signature-color;
 }
 
 .reveal aside{
@@ -43,13 +47,13 @@ $code-block-font-size: 0.75em;
 .reveal .title {
   border-bottom: 6px;
   border-bottom-style: solid;
-  border-bottom-color: #880000;  
+  border-bottom-color: $signature-color;  
 }
 
 .reveal h2 {
   border-bottom: 4px;
   border-bottom-style: solid;
-  border-bottom-color: #880000;
+  border-bottom-color: $signature-color;
 }
 
 .reveal .math {
