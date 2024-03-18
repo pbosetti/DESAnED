@@ -1,0 +1,20 @@
+---
+title: "Examples"
+author: "Paolo Bosetti"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+source("utils.R")
+```
+
+# Load sample data file
+
+```{r}
+sample_files("duplicate.csv", show=T)
+(df <- read.csv(sample_files("duplicate.csv")))
+```
+
