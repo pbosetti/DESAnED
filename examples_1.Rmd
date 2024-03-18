@@ -14,7 +14,7 @@ source("utils.R")
 # Load sample data file
 
 ```{r}
-sample_files("duplicate.csv", show=T)
-(df <- read.csv(sample_files("duplicate.csv")))
+url <-  sample_files("duplicate.csv", show=T)
+(df <- read.csv(url))
 ```
 
