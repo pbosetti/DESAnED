@@ -130,7 +130,7 @@ x_2 & 1 \\
 x_N & 1 \\
 \end{bmatrix} \cdot
 \begin{bmatrix}
-to \\
+a \\
 b
 \end{bmatrix} =
 \begin{bmatrix}
