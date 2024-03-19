@@ -2,19 +2,212 @@
 title: "Examples"
 author: "Paolo Bosetti"
 date: "`r Sys.Date()`"
-output: pdf_document
+output: 
+  pdf_document: 
+    toc: true
+    number_sections: true
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(
+  echo       = TRUE,          # Set to FALSE to suppress printout of R code
+	fig.align  = "center",      # figure alignment
+	fig.dim    = c(5, 3) * 1.2, # Aspect ration and scale factor (to adjust font size)
+	out.height = "2.8in"        # actual figure size in inches
+)
 library(tidyverse)
+library(modelr)
 source("utils.R")
 ```
 
 # Load sample data file
 
 ```{r}
-url <-  sample_files("duplicate.csv", show=T)
+url <- sample_files("duplicate.csv", show=T)
 (df <- read.csv(url))
+```
+
+# Free text formatting in Markdown
+
+## This is level 2 header
+
+This is a paragraph. It goes on until an empty line is found. Note that **this is not** a new paragraph.
+
+While this is a new *paragraph*.
+
+To do a bullet list, use asterisks or dashes:
+
+-   item 1
+-   second item
+    -   level 2 item
+    -   another level 2 item
+-   you can use numbered lists:
+    1.  first
+    2.  another first
+    3.  second
+    4.  third
+-   or with letters:
+    a.  jkh jkhsdf
+    b.  kjhas kjhas d
+
+Links: [this is the link text](https://example.com) or <https://google.com>
+
+# Distributions
+
+There is a family of R functions designed to interact with random variables and distributions. These functions follow this pattern: `[r|d|p|q][dist_name]()`, where `dist_name` is one of `binom, pois, geom, unif, norm, t, chisq, f`, and:
+
+* `r` stands for *generate random numbers*
+* `d` stands for *probability density function* (PDF)
+* `p` stands for *cumulative distribution function* (CDF)
+* `q` stands for *quantile function*
+
+## Examples
+
+To generate 10 random numbers from Poisson distribution with parameter $\lambda=2$:
+
+```{r}
+rpois(10, 2)
+```
+
+To plot the probability density of the Chi-squared distribution:
+
+
+```{r}
+ggplot() +
+  geom_function(fun=dchisq, args=list(df=10)) +
+  xlim(0, 50)
+```
+
+To calculate the probability of a value larger than 20 on $X^2_{10}$:
+
+```{r}
+pchisq(20, 10, lower.tail=FALSE)
+```
+
+To calculate the value in a $X^2_{10}$ distribution, which is smaller than 10% of the observations:
+
+```{r}
+qchisq(0.1, 10, lower.tail=FALSE)
+```
+
+which means that the probability of finding a value larger than `r qchisq(0.1, 10, lower.tail=FALSE)` is 10%.
+
+
+# Regression examples
+
+## Univariate data
+
+Let's first generate a data frame for a univariate series corresponding to the nominal relationship $y=2x+0.1x^2$, adding a normal noise $\mathcal{N}(0, 2)$:
+
+```{r}
+set.seed(0)
+
+N <- 100
+df <- tibble(
+  x = seq(-10, 10, length.out=N),
+  y_nom = 2 * x + 0.1 * x^2,
+  y = y_nom + rnorm(N, 0, 2)
+)
+
+df
+```
+
+Firstly, we plot the data (column `y`) as scatter plot and the nominal values (column `y_nom`) as a line:
+
+```{r}
+df %>% 
+  ggplot(aes(x=x)) +
+  geom_line(aes(y=y_nom)) +
+  geom_point(aes(y=y)) +
+  labs(x = "Predictor, x", y="Predicted value, y", title="Regression example")
+```
+
+Regression is performed with the `lm()` function (as in *linear model*). We want to fit the following model on the data:
+
+$$
+y_i = a + bx_i + cx_i^2 + \varepsilon_i
+$$
+A given mathematical model is written in R language using **formulas**. For our quadratic model, the corresponding formula is: `y~x+I(x^2)`
+
+
+```{r}
+df.lm <- lm(y~x+I(x^2), data=df)
+
+summary(df.lm)
+```
+Looking at the $R^2$ value, it is pretty close to one, which suggests a good fitting. But if we look at the accompanying ANOVA table, we see that the *p*-value associated to the `(Intercept)` term is quite large. This means that the contribution to the fit of the $a$ term in the equation $y_i = a + bx_i + cx_i^2 + \varepsilon_i$ **is not significant**. As such, we can remove it and fit a new model of type $y_i = bx_i + cx_i^2 + \varepsilon_i$. To do that, we add `-1` to the formula, which means *remove the intercept term*:
+
+```{r}
+df.lm <- lm(y ~ x + I(x^2) - 1, data=df)
+summary(df.lm)
+```
+
+As we see, the $R^2$ value is improved, so this second model fits the data even better.
+
+Now let's plot the regression on the data. To do that, we add the regressed values $\hat y_i$ to the data frame and we plot the observations as scatter points and the regressed values as a red line:
+
+```{r}
+df %>% 
+  add_predictions(df.lm) %>% 
+  ggplot(aes(x=x)) +
+  geom_point(aes(y=y)) +
+  geom_line(aes(y=pred), color=rgb(1, 0, 0))
+```
+
+It is possible to directly add to the plot a regression model **with its confidence band** by using the `geom_smooth()` plot layer. Note that it takes as arguments the regression function (in our case `lm`), the formula, and the confidence level (default to 95%):
+
+```{r}
+df %>% 
+  ggplot(aes(x=x)) +
+  geom_point(aes(y=y)) +
+  geom_smooth(aes(y=y), method="lm", formula=y~x+I(x^2)-1, level=0.99) +
+  geom_line(aes(y=y_nom), lty=2, color="red")
+```
+
+**Note**: As a shortcut, a polynomial of third degree in the formula can be also written as: `y~poly(x, 3, raw=TRUE)`.
+
+The next step is to check for normality of residuals. We can do that by looking at the histogram of the residuals, at their Q-Q plot, and by performing a Shapiro-Wilk test.
+
+For the histogram, we override the default number of bins (30) using the Sturges' formula. The function `nclass.Sturges(x)` calculates the number of bins appropriate to a vector with the same elements number as `x`:
+
+```{r}
+df %>% 
+  add_residuals(df.lm) %>% 
+  ggplot(aes(x=resid)) +
+  geom_histogram(fill=grey(2/3), color="black", bins = nclass.Sturges(df$x))
+```
+
+The Q-Q plot is often more effective:
+
+```{r}
+df %>% 
+  add_predictions(df.lm) %>% 
+  add_residuals(df.lm) %>% 
+  ggplot(aes(sample=resid)) +
+  geom_qq() +
+  geom_qq_line(color="red") +
+  labs(x="theoretical quantiles", y="Sample quantiles")
+```
+
+To get the residuals, beside using the `add_residuals()` function (which adds the residuals column to an existing data frame), we can directly tap into the `df.lm` object, where the residuals are available as *attributes*. To list all attributes in an object:
+
+```{r}
+df.lm %>% attributes()
+```
+
+So we learn that `df.lm` has an attribute `residuals`: we can thus use `df.lm$residuals` to get the vector of residuals $\varepsilon_i$, and directly evaluate the Shapiro-Wilk test:
+
+```{r}
+shapiro.test(df.lm$residuals)
+```
+Again, as with the histogram and the Q-Q plot, there is no evidence of lack of normality.
+
+Lastly, we need to check for **patterns** in the residuals, to exclude any over-fitting: the following scatter plot of residuals vs. predictors shows no pattern. We can thus conclude that the model $y=bx + cx^2$ properly fits the data.
+
+```{r}
+df %>% 
+  add_residuals(df.lm) %>% 
+  ggplot(aes(x=x, y=resid)) +
+  geom_point()
 ```
 
