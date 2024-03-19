@@ -6,5 +6,6 @@ _publish.yml
 *_cache/*
 *_files/*
 /*.html
+/*.pdf
 images/*.graffle
 .Rproj.user

@@ -2,6 +2,7 @@
 title: "Examples"
 author: "Paolo Bosetti"
 date: "`r Sys.Date()`"
+classoption: a4paper
 output: 
   pdf_document: 
     toc: true
@@ -12,7 +13,7 @@ output:
 knitr::opts_chunk$set(
   echo       = TRUE,          # Set to FALSE to suppress printout of R code
 	fig.align  = "center",      # figure alignment
-	fig.dim    = c(5, 3) * 1.2, # Aspect ration and scale factor (to adjust font size)
+	fig.dim    = c(5, 3) * 1.2, # Aspect ratio and scale factor (adjust font size)
 	out.height = "2.8in"        # actual figure size in inches
 )
 library(tidyverse)
