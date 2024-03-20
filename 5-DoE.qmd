@@ -41,7 +41,7 @@ $\renewcommand{\theta}{\vartheta}$
 
 **Industrial experiments** often involve numerous factors corresponding to very complex **multivariate models**
 
-It is therefore necessary to **minimize the number of treatments** and, therefore, the cost of the experiment, and yet obtaining **the same information**
+It is therefore necessary to **minimize the number of treatments** and, therefore, the cost of the experiment, and yet to obtain **the same information**
 
 The experiments must then be analyzed with a statistical approach
 
@@ -49,17 +49,17 @@ The experiments must then be analyzed with a statistical approach
 
 ::: columns
 ::: column
-A **scientific experiment** is generally conducted for the purpose of supporting or disproving a theory
+A **scientific experiment** is generally conducted with the purpose of supporting or disproving a theory
 
 - it is always based on a **theoretical model** to be verified
-- often the model focuses on the effect of a limited number of factors
+- often the model focuses on the effect of a limited number of explanatory variables
 :::
 
 ::: column
 In the **industrial field** this is often not possible:
 
-- often a **theoretical model** for the object of the experiment is not available for scientific, technical or practical reasons
-- the **interaction** between multiple factors is often what matters most
+- often a **theoretical model** for subject of the experiment is not available due to scientific, technical, or practical reasons
+- the **interaction** between multiple explanatory variables is often what matters most
 :::
 :::
 
@@ -73,13 +73,13 @@ In general, an experiment serves to:
 
 1. **confirm** a theoretical hypothesis (model): you want to verify the [form]{.bgreen} $y=f(\cdot)$ of the theoretical model; the regression of the model is accompanied by the study of confidence intervals (analytical or bootstrap)
 2. **calibrate** the parameters of a model: the shape is known and we want to obtain the [parameter values]{.bgreen}; generally a regression is carried out, collecting data under realistic operating conditions
-3. **identify** the factors that influence a process: the model may be unknown and we want to determine the [list of factors]{.bgreen} that appear in the $y=f(\cdot)$; the objective is to build an approximate empirical model, which can possibly be used as a starting point for the formulation of a theoretical model
+3. **identify** the explanatory variables that influence a process: the model may be unknown and we want to determine the [list of independent variables]{.bgreen} that appear in the $y=f(\cdot)$; the objective is to build an approximate empirical model, which can possibly be used as a starting point for the formulation of a theoretical model
 
 ## Dimensionality of an experiment
 
-If the **model of interest is univariate**, the experiment consists of analyzing the output at a sequence of levels for the input. The number of levels is correlated with the expected degree of the response: for a regression of degree $n$ you need **at least** $n+1$ levels
+If the **model of interest is univariate**, the experiment consists of analyzing the response variable at a sequence of levels for the explanatory variable. The number of levels is correlated with the expected degree of the response: for a regression of degree $n$ you need **at least** $n+1$ levels
 
-But if the model is **multivariate**, i.e. the output depends on $m$ factors, and each factor is investigated on $k$ levels, then the number of test conditions is $k^m$
+But if the model is **multivariate**, i.e. the output depends on $m$ explanatory variables, and each variable is investigated on $k$ levels, then the number of test conditions is $k^m$
 
 If each test condition is then repeated $r$ times (to average the results), the number of individual experiments is $rl^n$
 
@@ -91,7 +91,7 @@ Suppose we have 4 parameters and 4 levels, repeating each test 3 times: the tota
 
 # Factorial plans
 
-If in a univariate experiment the factor takes on a **sequence** of values, in a **multivariate** experiment the $n$ factors take on an $n$-dimensional **grid** of values, called **factorial plan **
+If in a univariate experiment the explanatory variable, or [factor]{.bgreen}, takes on a **sequence** of values, in a **multivariate** experiment the $n$ factors take on an $n$-dimensional **grid** of values, called **factorial plan **
 
 
 ## Factorial plan
@@ -193,7 +193,7 @@ The concept of interaction is well illustrated by **interaction graphs**
 
 ::: column
 ::: panel-tabset
-### Yield vs. TO
+### Yield vs. A
 
 ```{r}
 ggplot(data, aes(x=A, y=yield, color=B, group=B)) +
@@ -312,7 +312,7 @@ We want to study the effect of cutting speed (factor $A$) and rake angle (factor
 :::column
 1. preparation of the **test grid**
 2. randomization of the operative sequence
-3. conduct of experiments and data collection
+3. execution of experiments and data collection
 4. formulation and verification of the statistical model
 5. analysis of variance (ANOVA)
 6. creation of the response surface
@@ -418,19 +418,19 @@ where $(\alpha\beta)$ is not a product: it represents the coefficient of a produ
 ```{r}
 df <- add_residuals(df, df.lm)
 ggplot(df, aes(x=Angle, y=resid)) + geom_point() +
-   labs(x="angle", y="residues")
+   labs(x="angle", y="residuals")
 ```
 
 ### $\varepsilon(B)$
 ```{r}
 ggplot(df, aes(x=Speed, y=resid)) + geom_point() +
-   labs(x="velocity", y="residues")
+   labs(x="velocity", y="residuals")
 ```
 
 ### $\varepsilon(r)$
 ```{r}
 ggplot(df, aes(x=RunOrder, y=resid)) + geom_point() +
-   labs(x="Run Order", y="residues")
+   labs(x="Run Order", y="residuals")
 ```
 
 ### Quantile-Quantile
@@ -538,7 +538,7 @@ Factor plans in which all factors have two levels (low and high, -1 and +1 in co
 
 * allow you to regress models only of the first degree
 * require minimal testing
-* they still allow you to define the sensitivity of the process to the various factors, **excluding non-significant factors**
+* they still allow to define the sensitivity of the process to the various factors, **excluding non-significant factors**
 * are the starting point of any multivariate analysis of complex processes
 :::
 
@@ -902,7 +902,7 @@ car::boxCox(data.lm)
 :::
 
 :::aside
-Whenever a linear model is **suspicious** (in a **regression** or in **factorial design analysis**) it is a good idea to try a Box-Cox transformation. In PFs, sometimes the Box-Cox transformation can **simplify the model** (i.e. reduce the number of significant factors or interactions)
+Whenever a linear model is **suspicious** (in a **regression** or in **factorial design analysis**) it is a good idea to try a Box-Cox transformation. In Fps, sometimes the Box-Cox transformation can **simplify the model** (i.e. reduce the number of significant factors or interactions)
 :::
 
 # Extensions and subdivisions
@@ -915,11 +915,11 @@ A factorial plan, even an unreplicated $2^n$, can still be too onerous: in these
 
 :::columns
 :::column
-It would be automatic to **extend** a PF from $2^2$ to $2^3$ to evaluate quadratic effects
+It would be automatic to **extend** a FP from $2^2$ to $2^3$ to evaluate quadratic effects
 
 In this way, however, the **sensitivity** in the axial directions would be lower than the sensitivity in the diagonal directions, the evaluation interval being smaller in the first case
 
-It is therefore preferable to perform centered PFs with **rotational symmetry around the origin**
+It is therefore preferable to perform centered FPs with **rotational symmetry around the origin**
 
 By two factors, the axial points are extended a distance $\sqrt{2}$ from the origin; in the generic $n$-dimensional case the distance is $(2^k)^{1/4}$
 :::
@@ -942,7 +942,7 @@ By two factors, the axial points are extended a distance $\sqrt{2}$ from the ori
 
 :::columns
 :::column
-Suppose we consider **only** the opposite vertices of the PF in the figure: $(1), ab, ac, bc$
+Suppose we consider **only** the opposite vertices of the FP in the figure: $(1), ab, ac, bc$
 
 We are considering **half of the original FP**, which however includes all levels of the three factors
 
@@ -983,7 +983,7 @@ The effects matrix for a fractional FP $2^{n-1}$ plus the defining relation uniq
 
 ## *Alias* and information lost
 
-In a fractional PF $2^{3-1}$ with defining relation $I=ABC$, we consider these effects:
+In a fractional FP $2^{3-1}$ with defining relation $I=ABC$, we consider these effects:
 $$
 \begin{align}
 A &= (-(1)+a-b+ab-c+ac-bc+abc)/(2r) \\
@@ -1000,7 +1000,7 @@ Therefore, it results in $A\cdot I=A\cdot ABC$ i.e. $A=BC$, and similarly $B=AC$
 
 ## *Alias* and information lost
 
-Therefore, by splitting a PF you lose information: you lose the ability to discriminate between *aliased* effects. It is clear that the longer the defining relationship, the higher the degree of alias interactions with the direct effects will be (e.g. $A=BCDEF$)
+Therefore, by splitting a FP you lose information: you lose the ability to discriminate between *aliased* effects. It is clear that the longer the defining relationship, the higher the degree of alias interactions with the direct effects will be (e.g. $A=BCDEF$)
 
 By virtue of the **principle of sparsity of effects**, however, this loss of information is not dramatic. The **principle** says that in a process the significance of high-level interactions is gradually less likely as the number of factors that compose them increases
 
