@@ -14,10 +14,12 @@ knitr::opts_chunk$set(
   echo       = TRUE,          # Set to FALSE to suppress printout of R code
 	fig.align  = "center",      # figure alignment
 	fig.dim    = c(5, 3) * 1.2, # Aspect ratio and scale factor (adjust font size)
-	out.height = "2.8in"        # actual figure size in inches
+	out.height = "2.8in",       # actual figure size in inches
+  cache      = TRUE           # Enable caching of calculations
 )
 library(tidyverse)
 library(modelr)
+library(patchwork) # to combine plots into arrays
 source("utils.R")
 ```
 
@@ -165,7 +167,7 @@ df %>%
   geom_line(aes(y=y_nom), lty=2, color="red")
 ```
 
-**Note**: As a shortcut, a polynomial of third degree in the formula can be also written as: `y~poly(x, 3, raw=TRUE)`.
+**IMPORTANT NOTE**: As a shortcut, a polynomial of third degree in the formula can be also written as: `y~poly(x, 3, raw=TRUE)`. If the model is **univariate**, prefer a raw polynomial. If the model is **multivariate**, prefer an orthogonal polynomial, obtained as `poly(x, n)`.
 
 The next step is to check for normality of residuals. We can do that by looking at the histogram of the residuals, at their Q-Q plot, and by performing a Shapiro-Wilk test.
 
@@ -211,4 +213,311 @@ df %>%
   ggplot(aes(x=x, y=resid)) +
   geom_point()
 ```
+
+
+## Multivariate regression
+
+As an example of linear regression of a bivariate quadratic model, we start by creating our own virtual experiment. Firstly, we create a field $\mathbb R^2 \rightarrow \mathbb R$, i.e. a phenomenon (or *process*), where a scalar response variable $y$ depends on two explanatory variables $x_1, x_2$, such that $y=f(x_1, x_2)$.
+
+We build a data frame `dfn` in the domain $x_1\in [0, 10],~x_2\in [0,10]$ with the nominal values of $y$:
+
+```{r}
+set.seed(10)
+N <- 50
+
+# the y=f(x1,x2) function:
+y <- function(x1, x2) 10 - x1 + 0.1*x1^2 + 0.1*(-10*x2 + 1.5*x2^2) + 0.05 * x1 * x2
+
+# the data frame
+dfn <- expand.grid(
+  x1 = seq(0, 10, length.out=N),
+  x2 = seq(0, 10, length.out=N)
+) %>% mutate(y=y(x1, x2))
+
+# Visualize the data frame as a countour plot
+dfn %>% 
+  ggplot(aes(x=x1, y=x2, z=y)) +
+  geom_contour_filled()
+```
+In the previous block, `mutate()` is a powerful function provided by `dplyr` library (part of `tidyverse`). Have a look at the manual and at the cheat sheet on <https://dplyr.tidyverse.org>.
+
+Also, note that the `tidyverse` library **does not provide 3D plotting facilities**, for those are deemed misleading and possibly deceiving.
+
+Next, the **simulated experiment** begins. we randomly sample 100 points in the domain using `dplyr::slice_sample()`. Then we repeat 3 times each treatment (i.e. each line in the resulting data frame) using `dplyr::slice()`. Finally, with `dplyr::mutate()` we add a new column, `y`, obtained by adding a normal noise to the nominal values. 
+
+Remember that `dplyr` functions **never change the data frame which is been operated on**, so to retain the modifications we have to save the results in a new variable.
+
+```{r}
+Ns <- 100
+rep <- 3
+
+# n() is only usable within arguments of functions of the dplyr library
+df <- dfn %>% 
+  slice_sample(n = Ns) %>% 
+  slice(rep(1:n(), each=rep)) %>% 
+  mutate(y = y + rnorm(n(), 0, range(y)/25))
+```
+
+The new data frame is the result of an experiment, where we are randomly testing 100 different treatments, repeating each test three times.
+
+We can plot the results as a colored scatter plot of the nominal field:
+
+```{r}
+df %>% 
+  ggplot(aes(x=x1, y=x2, z=y)) +
+  geom_point(aes(color=y, size=y)) +
+  scale_color_viridis_c()
+```
+
+It is not that easy to find a pattern in the data, although there seems to be a minimum in the bottom left quadrant of the plot. Let's see the **cross sections** of the data, coloring the points with the other explanatory variable:
+
+```{r}
+df %>% 
+  ggplot(aes(x=x1, y=y)) +
+  geom_point(aes(color=x2)) +
+  scale_color_viridis_c() +
+  theme(legend.position = "bottom") -> p1
+df %>% 
+  ggplot(aes(x=x2, y=y)) +
+  geom_point(aes(color=x1)) +
+  scale_color_viridis_c() +
+  theme(legend.position = "bottom") -> p2
+
+p1 + p2 # use patchwork library: "+" means beside, "/" means above
+```
+
+It is now more clear that there is a curvature both along $x_1$ and along $x_2$. Consequently, we decide to try and fit the data with a linear model that is a combination of second degree polynomials in $x_1$ and $x_2$, i.e.:
+
+$$
+y = c_1 + c_2x_1 + c_3x_2 + c_4x_1^2 + c_5x_2^2+c_6x_1^2x_2 + c_7x_1x_2^2 + c_8x_1^2x_2^2
+$$
+This model can be expressed as an R formula as `y ~ poly(x1, 2) * poly(x2, 2)`, where we shall use **orthogonal polynomials** as explained in the previous note. The multiplication of the two polynomials means that we are also including all the **interactions** between the two regressors, i.e. terms as $c_ix_1^nx_2^m$:
+
+```{r}
+df.lm <-lm(y ~ poly(x1, 2) * poly(x2, 2), data=df)
+summary(df.lm)
+```
+
+The significance table says that the intercept, all the non-interaction terms, and the $x_1x_2$ term are significant, so we can revise the model as follows:
+
+```{r}
+df.lm <- lm(y ~ poly(x1,2) + poly(x2,2) + x1:x2, data=df)
+summary(df.lm)
+```
+
+Finally, let's compare the regressed model with the nominal field:
+
+```{r}
+dfn %>% 
+  add_predictions(df.lm) %>% 
+  ggplot(aes(x=x1, y=x2, z= y)) +
+  geom_contour_filled() +
+  geom_contour(aes(z=pred))
+```
+
+## Least-squares regression
+
+If the model to be regressed is non-linear in the coefficients, we cannot use `lm` and we must use the *nonlinear least-squares method*, provided by the `nls()` function.
+
+As usual, we start by creating a piecewise (thus non-linear) model:
+
+$$
+y(t) = \begin{cases}
+y_0 & t < t_0 \\
+at^2 + bt + c & t \geq t_0
+\end{cases}
+$$
+where, if $b=-2at_0$ and $c=y_0+at_0^2$ the resulting function is continuous with continuous derivative in $t_0$. In R code:
+
+```{r}
+f <- function(t, t0 = 0, bias = 0, a = 1) {
+  b <- -2 * a * t0
+  c <- bias + a * t0^2
+  y <- a*t^2 + b * t + c
+  return(ifelse(t < t0, bias, y))
+}
+```
+
+This model can represent many real cases of discontinuity, as for example the contact force between a sphere and a flat around the transition from non-contact to contact.
+
+Now we can simulate our experiment, where we sample the output $y$ as a function of time, at random timesteps:
+
+```{r}
+set.seed(1)
+
+onset <- 2.5
+bias <- 3
+a <- 1
+
+data <- tibble(
+  t = seq(-10, 10, length.out=100),
+  yn = f(t, onset, bias, a),
+  y = yn + rnorm(length(t), 0, 2)
+)
+
+data %>% 
+  ggplot(aes(x=t)) +
+  geom_point(aes(y=y)) +
+  # geom_line(aes(y=yn), color="red") + # Uncomment this to compare with nominal
+  labs(x="time (s)", y="Force (N)")
+```
+
+We observe a trend that is a plateau followed by an apparently quadratic growth. As such, we perform the regression with NLS method:
+
+```{r}
+data.nls <- nls(y~f(t, t0, b, a), data=data, start = list(t0 = 0, b=0, a=10))
+summary(data.nls)
+```
+
+Note that the `nls()` function requires a list of starting values for the model coefficients. Those shall be educated guesses close enough to what you expect to avoid finding different minima.
+
+Now let's compare the dtaa, the regression and the nominal function:
+
+```{r}
+data %>% 
+  add_predictions(data.nls) %>% 
+  ggplot(aes(x=t)) +
+  geom_point(aes(y=y)) +
+  geom_line(aes(y=pred), color="blue") +
+  geom_line(aes(y=yn), color="red", lty=2)
+```
+
+Lastly, let's check for the residuals, which turn out to be normal:
+
+```{r}
+data %>% 
+  add_residuals(data.nls) %>% 
+  ggplot(aes(sample=resid)) +
+  geom_qq() + geom_qq_line(color="red")
+
+shapiro.test(residuals(data.nls))
+```
+
+## Generalized linear regression: logistic regression
+
+Logistic regression is a generalized linear modeling that is suited to binary classifier, i.e. to define a continuous function (logistic function) that can be used to predict success or failure.
+
+This time we load adata frame for a real experiment from the Internet. The experiment tests the survival of liquid soap bottles when dropped from 1 meter ad a function of the fill level. The more liquid in the bottle, the less air to absorb the pressure spike, and the higher the probability of a break.
+
+```{r}
+data <- read_table(sample_files("soap_bottles.txt"), comment="#")
+data %>% slice_head(n=6)
+```
+
+Column `p` is the fill level, column `OK` is `TRUE` for bottles that survived the drop, `FALSE` otherwise.
+
+Let's plot the result in a histogram, with a colored rug on the bottom representing survivals (`TRUE`, in green) and failures (`FALSE`, in red). As we see, the two classes show a significant overlapping, i.e., there is no clean threshold that switches from survival to failure.
+
+```{r}
+data %>% 
+  ggplot(aes(x=p)) +
+  geom_histogram(color="black", fill=grey(2/3), bins=20) +
+  geom_rug(aes(color=OK))
+```
+This time we also introduce **cross validation** of the model. We split the data in two sets: a larger set (typically 80% of observations) is used to *train* the model (i.e. to perform the regression), the remaining set is used to **validate** the model.
+
+We can do that by adding a new boolean column, which is `TRUE` for a random 80% of samples.
+
+```{r}
+N <- length(data$run)
+ratio <- 0.8
+n <- floor(N * ratio)
+data$training <- FALSE
+data$training[sample(1:N, n)] <- TRUE
+data %>% slice_head(n=10)
+```
+
+Now we perform the regression using the `binomial` family of distributions, which corresponds to use the logistic function as a **link function**.
+
+```{r}
+data.glm <- glm(OK~p, family="binomial", data=filter(data, training))
+summary(data.glm)
+```
+
+Note that the logistic function that we discussed in the slides is:
+
+$$
+\mathrm{logit}(x) = \frac{1}{1 + \exp(-p(x-x_0))}
+$$
+where $p$ is the slope and $x_0$ is the threshold. Unfortunately, R uses a different, although equivalent, formulation, where $m$ is the first coefficient and $p$ the second:
+
+$$
+\mathrm{logit}(x) = \frac{1}{1 + \exp(-px-m))}
+$$
+from which it results that the threshold $x_0$ is:
+
+$$
+x_0 = -m/p
+$$
+
+In R:
+
+```{r}
+(x0 <- - data.glm$coefficients[1] / data.glm$coefficients[2])
+```
+
+Let's add a prediction column to the data frame, also adding a new column `OKn` that is the numeric equivalent of `OK` (i.e., 1 for `TRUE`, 0 for `FALSE`, so that it can be plotted):
+
+```{r}
+data <- data %>% 
+  add_predictions(data.glm, type="response") %>% 
+  mutate(OKn = as.numeric(OK))
+```
+
+And then we plot the fitted $\mathrm{logit}(x)$ function, together with the data:
+
+```{r}
+data %>% 
+  filter(training) %>% 
+  ggplot(aes(x=p, y=pred)) +
+  geom_line() +
+  geom_vline(xintercept = x0, lty=2) +
+  geom_point(aes(y=OKn, color=OK)) +
+  geom_rug(aes(y=pred, color=OK), sides="l")
+```
+
+The threshold of the fitted function, $x_0=`r round(x0, 3)`$ separates the data into two equally populated sets: for $p\leq x_0$ bottles tend to survive, otherwise they tend to break, with equal probabilities of false negatives (bottles predicted to survive but that fail) and false positive (bottles predicted to fail but that rather survive).
+
+To better show this we can use a contingency table, using the `table()` function, which shows the numbers of the four classes (true positive, true negative, false positive, false negative):
+
+```{r}
+ct <- table(
+  Actual = filter(data, training)$OK,
+  Predicted = filter(data, training)$pred > 0.5
+)
+knitr::kable(ct)
+```
+**Note**: the function `knitr::kable()` can be used to nicely format a table or a data frame to \LaTeX.
+
+The table can be easily normalized in percentage as follows:
+
+```{r}
+round(ct / sum(ct) * 100, 1) %>% 
+  knitr::kable()
+```
+
+It is now interesting to compare these values applying the same classifier on the validation data set:
+
+```{r}
+table(
+  Actual = filter(data, !training)$OK,
+  Predicted = filter(data, !training)$pred > 0.5
+) %>% knitr::kable()
+```
+
+Considering the sample size, the difference in the number of false positive and false negatives is still acceptable.
+
+Sometimes, one could be interested in setting a threshold on the logistic function that reduces the number of false positives or false negatives. This is application-specific: in our current case, false negatives (a bottle that fails when it shouldn't), are more troublesome of false positives. As such, we could tune the classifier reducing the probability of false negatives. 
+
+Looking at the last plot, we setting the threshold value to 0.95 should avoid most of failures:
+
+```{r}
+table(
+  Actual = filter(data, training)$OK,
+  Predicted = filter(data, training)$pred > 0.95
+) %>% knitr::kable()
+```
+
+
+
 

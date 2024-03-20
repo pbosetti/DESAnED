@@ -650,7 +650,7 @@ df.s %>% ggplot(aes(x=x)) +
 
 :::columns
 :::column
-**Only if I have a model $v=f(x, S)$** can I perform a regression
+**Only if I have a model $v=f(x, S)$** I can perform a regression
 
 Also in this case, the regression must be accompanied with confidence bands
 
