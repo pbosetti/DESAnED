@@ -981,7 +981,7 @@ The effects matrix for a fractional FP $2^{n-1}$ plus the defining relation uniq
 :::
 
 
-## *Alias* and information lost
+## *Alias* and information loss
 
 In a fractional FP $2^{3-1}$ with defining relation $I=ABC$, we consider these effects:
 $$
@@ -998,13 +998,13 @@ Given a certain defining relation, the possible alias structures can be obtained
 
 Therefore, it results in $A\cdot I=A\cdot ABC$ i.e. $A=BC$, and similarly $B=AC$ and $C=AB$.
 
-## *Alias* and information lost
+## *Alias* and information loss
 
 Therefore, by splitting a FP you lose information: you lose the ability to discriminate between *aliased* effects. It is clear that the longer the defining relationship, the higher the degree of alias interactions with the direct effects will be (e.g. $A=BCDEF$)
 
 By virtue of the **principle of sparsity of effects**, however, this loss of information is not dramatic. The **principle** says that in a process the significance of high-level interactions is gradually less likely as the number of factors that compose them increases
 
-Consequently, an alias $A=BCDEF$ can be neglected by assuming the significance of $A$ rather than that of $BCDEF$ by virtue of the Principle
+Consequently, an alias $A=BCDEF$ can be neglected by assuming the significance of $A$ rather than that of $BCDEF$ by virtue of said Principle
 
 ## Fractional FP of type $2^{n-p}$
 
@@ -1019,14 +1019,48 @@ For these two DRs there is a third, dependent one: $I=ABDE$. Any two of these th
 ### Minimum aberration design
 
 * All possible $p$-tuples of defining relations are generated, completing them with the dependent one
-* Count the number of letters in the $(p+1)$-tuple (previous example: $\left<5,5,4\right>$)
+* Count the number of letters in the $(p+1)$-tuples (previous example: $\left<5,5,4\right>$)
 * the *design* that minimizes the number of strings with minimum length is preferable because **it has fewer aliases**
 
+## Minimum Aberration Design (example)
 
+:::columns
+:::column
+Compare these $2^{7-2}_{IV}$ designs:
+
+Design A
+
+: $I = ABCF = BCDG~(= ADFG)$; 
+
+Design B
+
+: $I = ABCF = ADEG~(= BCDEFG)$; 
+
+Design C
+
+: $I=ABCDF=ABDEG~(=CEFG)$
+
+**Carefully select the defining relations!**
+:::
+
+:::column
+| Design A | Design B | Design C |
+|----------|----------|----------|
+|$AB=CF$   |$AB=CF$   |$CE=FG$   |
+|$AC=BF$   |$AC=BF$   |$CF=EG$   |
+|$AD=FG$   |$AD=EG$   |$CG=EF$   |
+|$AG=DF$   |$AE=DG$   |          |
+|$BD=CG$   |$AF=BC$   |          |
+|$BG=CD$   |$AG=DE$   |          |
+|$AF=BC=DG$|          |          |
+
+: 2nd level aliases:
+:::
+:::
 
 # Final recommendations
 
-It is very common to see DoEs only partially applied...
+It is very common to see DoE only partially applied...
 
 ## To make a good FP
 
