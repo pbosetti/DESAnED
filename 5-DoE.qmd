@@ -231,7 +231,7 @@ grd %>% mutate(
    yield = predict(model, newdata = grd)
 ) %>% ggplot(aes(x=An, y=Bn, z=yield)) +
    geom_contour_filled(show.legend=F) +
-   labs(x="A", y="B", color="resa") +
+   labs(x="A", y="B", color="Section: ") +
    geom_segment(aes(x=-1, y=-1, xend=1, yend=-1, color="B-"), size=2) +
    geom_segment(aes(x=-1, y=1, xend=1, yend=1, color="B+"), size=2) +
    geom_point(aes(x=An, y=Bn, color=B), data=data, size=4) +
@@ -889,9 +889,9 @@ The Box-Cox diagram also identifies an interval corresponding to a variation of 
 
 Any value of $\lambda$ within this range is statistically equivalent
 
-You then choose the value included in the range **e which represents a "convenient" transformation**
+You then choose the value included in the range, **which represents a "convenient" transformation**
 
-For example, if the optimal $\lambda$ was 0.58, I would still choose $\lambda=0.5$, which corresponds to the transformation $y^*=\sqrt{y}$
+For example, if the optimal $\lambda$ was 0.58, we would still choose $\lambda=0.5$, which corresponds to the transformation $y^*=\sqrt{y}$
 :::
 
 :::column
@@ -902,10 +902,10 @@ car::boxCox(data.lm)
 :::
 
 :::aside
-Whenever a linear model is **suspicious** (in a **regression** or in **factorial design analysis**) it is a good idea to try a Box-Cox transformation. In Fps, sometimes the Box-Cox transformation can **simplify the model** (i.e. reduce the number of significant factors or interactions)
+Whenever a linear model is **suspicious** (in a **regression** or in **factorial design analysis**) it is a good idea to try a Box-Cox transformation. In FPs, sometimes the Box-Cox transformation can **simplify the model** (i.e. reduce the number of significant factors or interactions)
 :::
 
-# Extensions and subdivisions
+# Extensions and fractions of FPs
 
 An $n^2$ factorial plan assumes that the response is linear: this hypothesis must be verified by **extending** the plan to more than 2 levels
 
@@ -948,7 +948,7 @@ We are considering **half of the original FP**, which however includes all level
 
 Splitting certainly reduces the completeness of the model, but it saves a lot of testing
 
-* How to choose fractionation for larger dimensions?
+* How to choose fractions for larger dimensions?
 * What information do we lose?
 
 :::
@@ -959,13 +959,13 @@ Splitting certainly reduces the completeness of the model, but it saves a lot of
 :::
 
 
-## Choosing fractionation: defining relationships
+## Choosing fractions: defining relationships
 
 :::columns
 :::column
 Looking at the **effects matrix**, we observe that the treatments $(1), ab, ac, bc$ correspond to the rows for which the relation $I=-ABC$ holds. The other complementary half instead corresponds to $I=ABC$
 
-These relations are called **defining relations** because they define the FFP. It makes no difference whether you choose the positive or the negative half
+These relations are called **defining relationships** because they define the FFP. It makes no difference whether you choose the positive or the negative half
 :::
 
 :::{.column style="font-size: 85%; text-align: center;"}
@@ -977,13 +977,13 @@ dm %>%
 :::
 
 :::aside
-The effects matrix for a fractional FP $2^{n-1}$ plus the defining relation uniquely identify a fractional factorial plan
+The effects matrix for a fractional FP $2^{n-1}$ plus the defining relationship uniquely identify a fractional factorial plan
 :::
 
 
 ## *Alias* and information loss
 
-In a fractional FP $2^{3-1}$ with defining relation $I=ABC$, we consider these effects:
+In a fractional FP $2^{3-1}$ with defining relationship $I=ABC$, we consider these effects:
 $$
 \begin{align}
 A &= (-(1)+a-b+ab-c+ac-bc+abc)/(2r) \\
@@ -992,11 +992,11 @@ BC &= (\underline{+(1)}+a-b\underline{-ab}-c\underline{-ac} \underline{+bc}+abc)
 $$
 Since the underlined treatments **are not tested**, the $A$ effect is indistinguishable from the $BC$ effect
 
-It is said that $A$ **is *aliased*** with $BC$
+It is said that $A$ is **aliased** with $BC$
 
-Given a certain defining relation, the possible alias structures can be obtained from the relation itself using a dedicated **algebra**: $I\cdot X=X$, $X\cdot X = X$, $X\cdot Y =XY$.
+Given a certain defining relation, the possible alias structures can be obtained from the relation itself using a dedicated **algebra**: $I\cdot X=X$, $X\cdot X = X$, $X\cdot Y =XY$
 
-Therefore, it results in $A\cdot I=A\cdot ABC$ i.e. $A=BC$, and similarly $B=AC$ and $C=AB$.
+Therefore, it results in $A\cdot I=A\cdot ABC$ i.e. $A=BC$, and similarly $B=AC$ and $C=AB$
 
 ## *Alias* and information loss
 
@@ -1014,7 +1014,7 @@ For each fraction it is necessary to choose a new defining relationship
 
 For example, for $2^{7-2}$ you can choose the DRs $I=ABCDE$ and $I=CDEFG$
 
-For these two DRs there is a third, dependent one: $I=ABDE$. Any two of these three DRs are equivalent
+For these two DRs there is a third, dependent one: $I=ABFG$. Any two of these three DRs are equivalent
 
 ### Minimum aberration design
 
