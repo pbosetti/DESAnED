@@ -16,8 +16,13 @@ Course offered to students of Space and Science Technology PhD programme.
 3. [Regression](https://paolobosetti.quarto.pub/desaned-3)
 4. [K-fold cross validation](https://paolobosetti.quarto.pub/desaned-4)
 5. [DoE](https://paolobosetti.quarto.pub/desaned-5)
-3. *more to come*
 
 ## Code Repository:
 
 The code is made available on GitHub: <https://github.com/pbosetti/DESAnED>
+
+## Bibliography
+
+1. Douglas C. Montgomery, "Design and Analysis of Experiments", 10th edition, Wiley, 2019, ISBN: 978-1-119-49244-3 (any cheaper edition is OK)
+2. Hadley Wickham, Garrett Grolemund, "R for Data Science", 1st edition, O'Reilly, 2017, ISBN: 978-1491910399, (also online at <https://r4ds.had.co.nz>)
+3. François Chollet with J. J. Allaire, "Deep Learning with R", 2nd edition, Manning, 2019, ISBN 9781617295546
