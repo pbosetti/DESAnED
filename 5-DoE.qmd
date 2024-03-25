@@ -409,7 +409,7 @@ df.lm <- lm(Life~Angle*Speed*I(Angle^2)*I(Speed^2), data=df)
 
 where $(\alpha\beta)$ is not a product: it represents the coefficient of a product of factors $A$ and $B$
 
-**It is necessary to evaluate normality and absence of pattern in the residues**
+**It is necessary to evaluate normality and absence of pattern in the residuals**
 :::
 :::column
 
@@ -526,7 +526,7 @@ After possibly excluding some effects (for example $B^2$ and $A^2B$) it is neces
 In particular, the analysis of the residuals is called **model adequacy check** (*Model Adequacy Check*, MAC) and typically consists of:
 
 * checks for absence of patterns in the residuals depending on the factors
-* checks for absence of patterns in the residues depending on the test order
+* checks for absence of patterns in the residuals depending on the test order
 * verification of normality of residuals (Q-Q graph and Shapiro-Wilk test)
 
 
@@ -861,7 +861,7 @@ data %>%
 :::
 
 :::aside
-Following this transformation it is therefore clear that the new model is more adequate, with pattern-free residues and more compatible with a normal distribution
+Following this transformation it is therefore clear that the new model is more adequate, with pattern-free residuals and more compatible with a normal distribution
 :::
 
 
