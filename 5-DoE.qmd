@@ -77,9 +77,9 @@ In general, an experiment serves to:
 
 ## Dimensionality of an experiment
 
-If the **model of interest is univariate**, the experiment consists of analyzing the response variable at a sequence of levels for the explanatory variable. The number of levels is correlated with the expected degree of the response: for a regression of degree $n$ you need **at least** $n+1$ levels
+If the **model of interest is univariate**, the experiment consists of analyzing the response variable at a sequence of levels for the explanatory variable. The number of levels is correlated with the expected degree of the response: for a regression of degree $m$ you need **at least** $l=m+1$ levels
 
-But if the model is **multivariate**, i.e. the output depends on $m$ explanatory variables, and each variable is investigated on $k$ levels, then the number of test conditions is $k^m$
+But if the model is **multivariate**, i.e. the output depends on $n$ explanatory variables, and each variable is investigated on $l$ levels, then the number of test conditions is $l^n$
 
 If each test condition is then repeated $r$ times (to average the results), the number of individual experiments is $rl^n$
 
@@ -243,9 +243,9 @@ grd %>% mutate(
 **NOTE**: Neither the response surface nor the interaction plots give any information on the **statistical significance** of the effects
 
 
-## $k^2$ factorial planes
+## $l^2$ factorial plans
 
-In general, an experiment in which you have 2 factors each tested on $k$ levels is a $k^2$ factorial design, because the **total number of treatments** is $N=rk^2$, where $r$ is the number of repetitions for each treatment
+In general, an experiment in which you have 2 factors each tested on $l$ levels is a $l^2$ factorial design, because the **total number of treatments** is $N=rl^2$, where $r$ is the number of repetitions for each treatment
 
 The **statistical model** and regression model associated with the experiment are:
 
@@ -289,7 +289,7 @@ $$
 :::
 :::
 
-## $k^2$ factorial plans
+## $l^2$ factorial plans
 
 These pairs of hypotheses correspond to a decomposition of the **corrected total square sum** $SS_\mathrm{tot}=SS_A + SS_B + SS_{AB} + SS_E$
 
@@ -299,8 +299,8 @@ The corresponding ANOVA table is:
 |----------|----------|----------|----------|----------|--------------------|
 | A| $a-1$ | $SS_A$ | $SS_A/\nu_A$ | $MS_A/MS_E$ | $\mathrm{CDF}^+(F_{0,A}, \nu_A, \nu_E)$ |
 | B| $b-1$ | $SS_B$ | $SS_B/\nu_B$ | $MS_B/MS_E$ | $\mathrm{CDF}^+(F_{0,B}, \nu_B, \nu_E)$ |
-| AB | $(a-1)(b-1)$) | $SS_{AB}$ | $SS_{AB}/\nu_{AB}$ | $MS_{AB}/MS_E$ | $\mathrm{CDF}^+(F_{0,AB}, \nu_{AB}, \nu_E)$ |
-| Error | $ab(-1)$ | $SS_E$ | $SS_E/\nu_E$ | --- | --- |
+| AB | $(a-1)(b-1)$ | $SS_{AB}$ | $SS_{AB}/\nu_{AB}$ | $MS_{AB}/MS_E$ | $\mathrm{CDF}^+(F_{0,AB}, \nu_{AB}, \nu_E)$ |
+| Error | $ab(n-1)$ | $SS_E$ | $SS_E/\nu_E$ | --- | --- |
 | Total | $abn-1$ | $SS_\mathrm{tot}$ | $SS_\mathrm{tot}/\nu_\mathrm{tot}$ | --- | --- |
 
 
@@ -530,7 +530,7 @@ In particular, the analysis of the residuals is called **model adequacy check** 
 * verification of normality of residuals (Q-Q graph and Shapiro-Wilk test)
 
 
-## $2^n$ factorial plane
+## $2^n$ factorial plan
 
 :::columns
 :::{.column width=60%}
@@ -547,7 +547,7 @@ Factor plans in which all factors have two levels (low and high, -1 and +1 in co
 :::
 :::
 
-## $2^n$ factorial plane
+## $2^n$ factorial plan
 
 :::columns
 :::column
@@ -601,7 +601,7 @@ dm %>%
 :::
 :::
 
-## $2^n$ factorial plane
+## $2^n$ factorial plan
 
 The effects matrix contains the information to calculate the **effects** and the quadratic sums $SS$ which, in turn, are used to complete the ANOVA table
 
