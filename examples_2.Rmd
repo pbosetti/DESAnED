@@ -1,0 +1,240 @@
+---
+title: "Examples: DoE"
+author: "Paolo Bosetti"
+date: "`r Sys.Date()`"
+classoption: a4paper
+output: 
+  pdf_document: 
+    toc: true
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo       = TRUE,          # Set to FALSE to suppress printout of R code
+	fig.align  = "center",      # figure alignment
+	fig.dim    = c(5, 3) * 1.2, # Aspect ratio and scale factor (adjust font size)
+	out.height = "2.8in",       # actual figure size in inches
+  cache      = TRUE           # Enable caching of calculations
+)
+library(tidyverse)
+library(modelr)
+library(patchwork) # to combine plots into arrays
+source("utils.R")
+```
+
+
+# Design of Experiments and Factorial Plans
+
+## Tool life
+
+We want to study the effects of cuttings speed and rake angle (geometry) on the tool life in a turning operation.
+
+Factors are:
+
+* A: Angle, 15°, 20, 25°
+* B: Cutting speed, 125, 150 175 m/min
+* Yield: tool life variation (h)
+
+### Prepare the Design matrix
+
+We use `expand.grid()` to create the grid with all the 9 combination of the three levels per factor, plus a repetition index (2 repetitions).
+
+```{r}
+df <- expand.grid(
+  Angle = c(15, 20, 25),
+  Speed = c(125, 150, 175),
+  Repeat = 1:2,
+  Response = NA
+) %>% 
+  mutate(
+    StdOrder = 1:n(),
+    RunOrder = sample(StdOrder),
+    .before = Angle
+  )
+
+df %>% 
+  arrange(RunOrder) %>% 
+  write_csv("cutting_exp_plan_en.csv")
+
+df %>% 
+  arrange(RunOrder) %>% 
+  write_csv2("cutting_exp_plan_it.csv")
+```
+
+### Carry out the experiments
+
+Pass the CSV file to the lab and ask to fill the `Response` column.
+
+### Load the data
+
+Load back the data into R for further processing. In this case, we load the data from the course repository on GitHub, using the utility function `sample_files()`.
+
+```{r}
+df <- read_table(sample_files("cutting.dat"))
+```
+
+### Define the linear model
+
+We start with a full linear model quadratic in the predictors, i.e. the model equation is
+
+$$
+\hat y(x_1,x_2) = \mu + c_1 x_1 + c_2x_2 + c_3x_1x_2 + c_4x_1^2x_2 + c_5x_1x_2^2+c_6x_1^2x_2^2 
+$$
+
+```{r}
+df.lm <- lm(Response~Angle*Speed*I(Angle^2)*I(Speed^2), data=df)
+anova(df.lm)
+```
+
+Let's look at the residuals, which do not show any pattern of note:
+
+```{r}
+df <- add_residuals(df, df.lm)
+
+df %>% 
+  ggplot(aes(x=Angle, y=resid)) + geom_point()
+
+df %>% 
+  ggplot(aes(x=Speed, y=resid)) + geom_point()
+
+df %>% 
+  ggplot(aes(x=RunOrder, y=resid)) + geom_point()
+
+```
+
+### Improve the model
+
+We can improve the model by removing the factors that are not significant, i.e. $B^2$ and $A^2B$
+
+```{r}
+df.lm2 <- lm(Response~Angle*Speed + Angle*I(Speed^2) + I(Angle^2):I(Speed^2), data=df)
+
+df <- add_residuals(df, df.lm2, var="resid2")
+
+df %>% 
+  ggplot(aes(x=Angle, y=resid2)) + geom_point()
+
+df %>% 
+  ggplot(aes(x=Speed, y=resid2)) + geom_point()
+
+df %>% 
+  ggplot(aes(x=RunOrder, y=resid2)) + geom_point()
+```
+
+Again, the residuals do not show any significant pattern.
+
+### Response surface
+
+Finally, let's plot the response surface. We need a new, denser grid on the same domain Angle, Speed. On this new grid, we then evaluate the fitted model with the `add_predictions()` function:
+
+```{r}
+rs <- expand.grid(
+  Angle = seq(15, 25, length.out=20),
+  Speed = seq(125, 175, length.out=20)
+)
+
+add_predictions(rs, df.lm2, var="Life") %>% 
+  ggplot(aes(x=Angle, y=Speed, z=Life)) +
+  geom_contour_filled(bins=20)
+```
+
+## $2^2$ Factorial Plane
+
+Chemical reaction:
+
+* A: reactant concentration
+* B: catalyst quantity
+* Yield: reaction yield
+
+### Design matrix
+
+As in the previous example. For brevity, we directly load the yield column as a vector of values:
+
+```{r}
+df <- expand.grid(
+  A = c(-1,1),
+  B = c(-1,1),
+  rep = 1:3
+) %>% 
+  mutate(
+    StdOrder = 1:n(),
+    RunOrder = sample(StdOrder),
+    .before = A
+  )
+
+df$y <- c( # Given in StdOrder!!!
+  28, 36, 18, 31,
+  25, 32, 19, 30,
+  27, 32, 23, 29
+)
+
+df
+```
+
+### Model
+
+We fit the data with a full linear model:
+
+```{r}
+df.lm <- lm(y~A*B, data=df)
+anova(df.lm)
+```
+
+The ANOVA table shows no significant interaction between A and B, i.e., the effect of A does not depend on the level of B. We can thus simplify the model:
+
+```{r}
+df.lm <- lm(y~A+B, data=df)
+anova(df.lm)
+
+df <- add_residuals(df, df.lm)
+df <- add_predictions(df, df.lm)
+
+df
+```
+
+Now we check the residuals:
+
+```{r}
+df %>% 
+  ggplot(aes(x=A, y=resid)) + geom_point()
+
+df %>% 
+  ggplot(aes(x=B, y=resid)) + geom_point()
+
+df %>% 
+  ggplot(aes(x=RunOrder, y=resid)) + geom_point()
+
+
+df %>% 
+  ggplot(aes(x=pred, y=resid)) + geom_point()
+
+
+```
+Given that there is no pattern of note, we can plot the response surface as above. We also add secondary axes to the plot with rescaled marks that map to the original scale:
+
+```{r}
+rs <- expand.grid(
+  A=seq(-1, 1, 0.1),
+  B=seq(-1, 1, 0.1)
+) %>% 
+  add_predictions(df.lm)
+
+rs %>% 
+  ggplot(aes(x=A, y=B, z=pred)) + 
+  geom_contour_filled() +
+  scale_x_continuous(
+    sec.axis = sec_axis(
+      function(x) scales::rescale(x, from=c(-1, 1), to=c(15, 25)),
+      name="Reactant"
+    )
+  ) +
+  scale_y_continuous(
+    sec.axis = sec_axis(
+      function(x) scales::rescale(x, from=c(-1,1), to=c(1, 5)),
+      name="Catalyst"
+    )
+  )
+```
+
+Since the model does not include the interaction `A:B`, the contour lines are straight and parallel. Conversely, if there would be significant interaction, the contour lines would be curved.
