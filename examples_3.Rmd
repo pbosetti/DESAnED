@@ -1,0 +1,614 @@
+---
+title: "Examples: DoE (2)"
+output: 
+  pdf_document: 
+    toc: yes
+    number_sections: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo       = TRUE,          # Set to FALSE to suppress printout of R code
+	fig.align  = "center",      # figure alignment
+	fig.dim    = c(5, 3) * 1.2, # Aspect ratio and scale factor (adjust font size)
+	out.height = "2.8in",       # actual figure size in inches
+  cache      = TRUE           # Enable caching of calculations
+)
+library(tidyverse)
+library(modelr)
+library(patchwork) # to combine plots into arrays
+library(ciTools)
+library(MASS)
+source("utils.R")
+```
+
+# Factorial plans
+
+## Battery life experiment
+
+We want to study the relationship between battery life, temperature, and type of electrolyte in batteries.
+
+We build a $3^2$ factorial plan, repeating each treatment 4 times. Total 4 times 9 tests.
+
+### Data preparation
+
+Prepare the data frame:
+
+```{r}
+df <- expand.grid(
+  Temperature = c(15, 75, 125),
+  Material = LETTERS[1:3],
+  Repeat = 1:4,
+  Response = NA
+) %>% 
+  mutate(
+    StdOrder = 1:n(),
+    RunOrder = sample(StdOrder),
+    .before = Temperature
+  )
+
+df %>% 
+  arrange(RunOrder) %>% 
+  write_csv("battery.csv")
+```
+
+Do the experiments and then read back the data:
+
+```{r}
+df <- read.table(sample_files("battery.dat"), header=T) %>% 
+  mutate(
+    Material = LETTERS[Material],
+    Temperature_f = as.factor(Temperature)
+  )
+head(df)
+```
+
+### Screening
+
+Evaluate the interactions between factors with an interaction plot. Note that any conclusion is subjected to the **verification of statistical significance** via ANOVA.
+
+```{r}
+df %>% 
+  group_by(Material, Temperature) %>% 
+  summarise(
+    Life=mean(Response), 
+    l=t.test(Response)$conf.int[1],
+    u=t.test(Response)$conf.int[2], 
+    .groups="keep") %>% 
+  ggplot(aes(x=Temperature, y=Life, group=Material, color=Material)) +
+  geom_line() +
+  geom_errorbar(aes(ymin=l, ymax=u), width=5, alpha=0.5) +
+  geom_point() +
+  labs(y="Battery life (h)", x="Temperature (°C)")
+
+```
+
+The interaction plot could also be rendered in the orthogonal view, i.e. by keeping the Temperature in series:
+
+```{r}
+df %>% 
+  group_by(Temperature_f) %>% 
+  group_by(Material, .add=TRUE) %>% 
+  summarise(Life=mean(Response), .groups="keep") %>% 
+  ggplot(aes(x=Material, y=Life, group=Temperature_f, color=Temperature_f)) +
+  geom_line() +
+  geom_point() +
+  labs(y="Battery life (h)", color="Temperature (°C)")
+
+```
+
+
+
+### ANOVA
+
+Let's do the ANOVA analysis in order to verify if there are significant treatments in our experiment. We want to model the yield as depending on the two factors and their interaction:
+
+$$
+y_{ijk} = \mu + \alpha_i + \beta_j + (\alpha\beta)_{ij} + \epsilon_{ijk}
+$$
+In R, the equivalent of such a model is the formula `Y~A+B+A:B` or, briefly, `Y~A*B`. In other words:
+
+* `A+B` means take effects of factor A and B, separately ($\alpha_i + \beta_j$)
+* `A:B` represents the interaction ($(\alpha\beta)_{ij}$)
+* `A+B+A:B` is equal to `A*B`
+
+Also, we need to remember that all factors must be categorical: if any of the factors is numeric, we need to cast it to a `factor` type with the `factor()` function:
+
+```{r}
+df.lm <- lm(Response ~ Temperature_f*Material, data=df)
+anova(df.lm)
+```
+
+Looking at the ANOVA table it seems that both factors and their interaction are statistically significant.
+
+A set of Tukey's tests can help analyzing the interaction plot above obtained:
+
+```{r}
+for (t in levels(df$Temperature_f)) {
+  cat("Temperature: ", t, "\n")
+  print(TukeyHSD(aov(Response~Material, data=df[df$Temperature_f==t,])))
+}
+```
+
+We can conclude that:
+* at 15°C, the three electrolytes are equivalent
+* at 70°, electrolytes b and c are equivalent, and a is significantly worst
+* at 125°, only c is marginally better.
+
+
+
+### Model Adequacy Cecks
+
+Let us verify the assumption of normality of residuals:
+
+```{r}
+df <- df %>% 
+  add_residuals(df.lm) %>% 
+  add_predictions(df.lm)
+
+df %>% ggplot(aes(x=Temperature, y=resid)) + geom_point()
+df %>% ggplot(aes(x=Material, y=resid)) + geom_point()
+df %>% ggplot(aes(x=pred, y=resid)) + geom_point()
+
+df %>% ggplot(aes(sample=resid)) + geom_qq() + geom_qq_line()
+```
+
+If we observe any pattern, the meaning is:
+
+* in residuals vs. run order: the noise was increasing during the test sequence, typically due to a change in environmental conditions. This does not invalidate the experiment, but reduces the *power* of the F-test (i.e., a larger evidence is needed for a similar p-value). A more controlled testing environment/protocol is needed.
+* in residuals vs. std order: the noise level depends on the level of one of the factors. This should happen when controlling the experiment at a given factor level becomes more difficult (e.g., controlling the temperature at 125°C is more difficult than at low temperatures)
+* in residuals vs. fitted values: the statistical model is not adequate. This typically requires a **transformation** of the yield (see next)
+
+In our present case, there is no pattern in the plot, so we can accept the last model.
+
+### Regression
+
+We can do regression on the only *quantitative* factor, `Temperature`:
+
+```{r}
+df.new <- expand.grid(
+  Temperature=seq(min(df$Temperature), max(df$Temperature), len=50),
+  Material=levels(factor(df$Material))
+) %>% 
+  add_ci(lm(Response~I(Temperature^2)*Material, data=df), names=c("L", "U"))
+
+df.new %>% 
+  ggplot(aes(x=Temperature, y=pred, group=Material, color=Material)) +
+  geom_line() +
+  geom_ribbon(aes(ymin=L, ymax=U), alpha=0.1, fill=gray(1/3), lty=3) +
+  geom_point(data=df, aes(x=Temperature, y=Response)) + 
+  labs(x="Temperature (°C)", y="Predicted life (h)")
+
+```
+
+
+
+
+
+## Central Composite Design
+Taken from Montgomery's book, 5th ed. page 273.
+
+We have a chemical reactor that produces a compound by a suitable reaction. We want to study the process by relating the reaction yield with temperature and time. 
+
+We design a full factorial plan $2^2$: factor A is the reaction time, factor B is the reaction temperature. Response is the reaction yield.
+
+Create the design matrix and add the data for a un-replicated design:
+
+```{r}
+lvl <- c("-", "+")
+df <- expand.grid(A=lvl, B=lvl) %>% 
+  mutate(
+    Y = c(39.3, 40.9, 40.0, 41.5)
+  )
+df
+```
+
+We can look at what's happening with an interaction plot:
+
+```{r}
+df %>% 
+  ggplot(aes(x=A, y=Y, group=B, color=B)) +
+  geom_line()
+```
+Both factors seem to have a positive effect, and given that the two lines are parallel, there seems to be no interaction. Of course, we cannot accept these conclusion without the ANOVA.
+
+As the factorial plan is non-replicated, though, we cannot perform the ANOVA. 
+
+```{r}
+df.lm <- lm(Y~A*B, data=df)
+anova(df.lm)
+```
+
+As we see, it fails providing F-values.
+
+We need to either replicate the experiment at least twice, or to add a central point in the origin. The latter approach has the advantage to allow checking for curvature in the response surface.
+
+Se we add a central point repeated 5 times, and convert categorical factors to numerical ones in order to perform a quadratic fit:
+
+```{r}
+dfc <- df %>% 
+  mutate(
+    A = ifelse(A=='-', -1, 1),
+    B = ifelse(B=='-', -1, 1)
+  ) %>% 
+  add_case(
+    A = rep(0, 5),
+    B = rep(0, 5),
+    Y = c(40.3, 40.5, 40.7, 40.2, 40.6)
+  )
+```
+
+Firstly, we check the normal first order model:
+
+```{r}
+lm(Y~factor(A)*factor(B), data=dfc) %>% anova()
+```
+
+Now that we have repetitions, the ANOVA provides p-values, and it confirms that the interaction is not significant.
+
+We can check for curvature fitting any quadratic model, in `A`, `B`, or both, correspondingly:
+
+```{r}
+lm(Y~A*B+I(A^2), data=dfc) %>% anova()
+lm(Y~A*B+I(B^2), data=dfc) %>% anova()
+```
+
+Both ANOVA tables confirm that there is no quadratic effect. Also note that the two tables contain identical values.
+
+
+## Cutting process
+Montgomery, 5th ed. page. 276
+
+We want to investigate the cutting process in a lathe with a $3\times 2^3$ full factorial plan. The process factors are:
+
+* A = cutting speed
+* B = tool geometry
+* C = cutting angle
+* r = replicate (3 times)
+* Yield = tool life
+
+Design matrix:
+
+```{r}
+lvl <- c("-", "+")
+df <- expand.grid(r=1:3, A=lvl, B=lvl, C=lvl, Y=NA)
+df$Y <- c(
+  22, 31, 25, 32, 43, 29,
+  35, 34, 50, 55, 47, 46,
+  44, 45, 38, 40, 37, 36,
+  60, 50, 54, 39, 41, 47
+)
+head(df)
+```
+
+Analysis of variance:
+
+```{r}
+lm(Y~A*B*C, data=df) %>% anova()
+```
+
+Revise the model by removing non-significant factors:
+
+```{r}
+df.lm <- lm(Y~A:C+B+C, data=df)
+anova(df.lm)
+```
+
+Check for model adequacy:
+
+```{r}
+df <- df %>% 
+  add_residuals(df.lm) %>% 
+  add_predictions(df.lm)
+
+df %>% ggplot(aes(x=A, y=resid)) + geom_point()
+df %>% ggplot(aes(x=B, y=resid)) + geom_point()
+df %>% ggplot(aes(x=C, y=resid)) + geom_point()
+df %>% ggplot(aes(x=pred, y=resid)) + geom_point()
+
+df %>% ggplot(aes(sample=resid)) + geom_qq() + geom_qq_line()
+
+```
+There are no evident patterns, so we accept the model as adequate.
+
+
+## Drilling process
+Montgomery, 5th ed. page 257.
+
+We want to study a ground drilling process in an un-replicated full factorial plan, where the factors are:
+
+* A = drilling load
+* B = mud flow rate
+* C = rotational speed
+* D = type of drilling mud
+* Y = drilling rate
+
+```{r}
+lvl <- c("-", "+")
+df <- expand.grid(A=lvl, B=lvl, C=lvl, D=lvl, Y=NA)
+```
+
+Add the yield in standard order:
+
+```{r}
+df$Y <- c(
+  1.68, 1.98, 4.98, 5.70,  # (1) a b ab
+  3.24, 3.44, 9.97, 9.07,  # c ac bc abc
+  2.07, 2.44, 7.77, 9.43,  # d ad bd abd
+  4.09, 4.53, 11.75, 16.30 # cd acd bcd abcd
+)
+# df$Yfake <- rnorm(16) # to test for Daniel's method
+sum(df$Y) # checksum
+```
+
+Let's build a complete linear model. The plan is unreplicated, so we cannot do the ANOVA and we have to rely on the Daniel's method:
+
+```{r}
+daniels_data <- function(model) {
+  eff <- effects(model)
+  tibble(
+    term = names(eff),
+    value = as.numeric(eff)
+  ) %>% 
+    slice_tail(n=length(eff) - 1) %>% 
+    mutate(
+      term=str_remove_all(term, "[+1]")
+    )
+}
+
+
+lm(Y~A*B*C*D, data=df) %>% 
+  daniels_data() %>%
+  ggplot(aes(sample = value)) +
+  geom_hline(aes(yintercept = value), color = gray(0.7)) +
+  geom_qq() +
+  geom_qq_line() +
+  geom_label(aes(y = value, x = -3., label = term), hjust = "left") +
+  coord_cartesian(xlim = c(-3, 3)) +
+  labs(x = "Theoretical Quantiles", y = "Sample Quantiles")
+
+```
+
+By looking at the Daniel's plot, it appears that significant factors are B, B:C, A, B:D, D, C. So we can formulate a new, reduced model, which gains enough redundancy to perform the ANOVA:
+
+```{r}
+lm(Y~A+B*C+B*D, data=df) %>% anova()
+```
+
+The term `A` is indeed non-significant, so we can remove it:
+
+```{r}
+df.lm <- lm(Y~B*C+B*D, data=df)
+```
+
+The model adequacy check shows that the residuals are normal, but there is an evident pattern:
+
+```{r}
+df <- df %>% 
+  add_predictions(df.lm) %>% 
+  add_residuals(df.lm)
+
+df %>% 
+  ggplot(aes(sample=resid)) + geom_qq() + geom_qq_line()
+
+df %>% 
+  ggplot(aes(x=pred, y=resid)) + geom_point()
+
+```
+
+We can try to remove the pattern by applying a transformation to the yield: we try and rise the yield to different powers until we find a transformation that removes the pattern.
+
+There is a formal method named after Box-Cox, which allows to identify the proper transformation graphically:
+
+```{r}
+bc <- boxcox(Y~B*C+C*D, data=df)
+```
+The maximum of the Box-Cox curve is at {r bc$x[which.max(bc$y)]}: this means that the optimum transformation would be `Y^-0.424242`. Rather than adopting that power, though, we prefer to select the closest *sensible* power that falls within the confidence interval: in our case `Y^-0.5`:
+
+```{r}
+df.lmt <- lm(Y^-0.5~B*C+D, data=df)
+anova(df.lmt)
+
+df %>% 
+  add_predictions(df.lmt) %>% 
+  add_residuals(df.lmt) %>% 
+  ggplot(aes(x=pred, y=resid)) + geom_point()
+```
+As we see, now the residuals are pattern free and so we can accept the last model.
+
+
+## Fractional factorial plan
+
+We want to study the yield of an IC manufacturing plant according to:
+
+* A = aperture
+* B = exposure time
+* C = develop time
+* D = mask dimension parameter
+* E = etch time
+* Y = response
+
+We design a  $2^{5-1}_{IV}$ unreplicated factorial plan with the defining relationship $I=ABCDE$.
+
+```{r}
+lvl <- c(-1,1)
+df <- expand.grid(A=lvl, B=lvl, C=lvl, D=lvl) %>% # E=ABCD
+  mutate(
+    E = A*B*C*D
+  ) %>% 
+  mutate(
+    across(A:E, ~as.factor(.))
+  )
+
+df$Y <- c(
+  8, 9, 34, 52,
+  16, 22, 45, 60,
+  6, 10, 30, 50,
+  15, 21, 44, 63
+)
+sum(df$Y)
+```
+
+The plan is unreplicated, so we need to use the Daniel's method:
+
+```{r}
+daniels_data(lm(Y~A*B*C*D*E, data=df)) %>%
+  ggplot(aes(sample = value)) +
+  geom_hline(aes(yintercept = value), color = gray(0.7)) +
+  geom_qq() +
+  geom_qq_line() +
+  geom_label(aes(y = value, x = -3., label = term), hjust = "left") +
+  coord_cartesian(xlim = c(-3, 3)) +
+  labs(x = "Theoretical Quantiles", y = "Sample Quantiles")
+```
+
+The proper model is much probably `Y~A*B+C`. To be conservative, we can still use:
+
+```{r}
+lm(Y~A*B*C, data=df) %>% anova()
+```
+
+Which confirms that the proper model is `Y~A*B+C`.
+
+```{r}
+df.lm <- lm(Y~A*B+C, data=df)
+anova(df.lm)
+```
+
+Now we need to check model adequacy:
+
+```{r}
+df <- df %>% 
+  add_predictions(df.lm) %>% 
+  add_residuals(df.lm) 
+df %>% 
+  ggplot(aes(x=pred, y=resid)) + geom_point()
+df %>% 
+  ggplot(aes(sample=resid)) + geom_qq() + geom_qq_line()
+```
+
+We can accept the model and look at the interactions:
+
+```{r}
+df %>% 
+  group_by(A, B, C) %>% 
+  summarise(Y=mean(Y), .groups="keep") %>% 
+  ggplot(aes(x=A, y=Y, group=B, color=B)) + 
+  geom_point() + 
+  geom_line() +
+  facet_wrap(vars(C), labeller="label_both")
+```
+
+## Injection molding
+Parts manufactured in an injection molding process tend to have excessive shrinkage. This is causing problems in the downstream assembly process. We need to understand how to change process parameters in order to reduce shrinkage.
+
+* mold temperature (A)
+* screw speed (B)
+* holding time (C)
+* cycle time (D)
+* gate size (E)
+* holding pressure (F)
+
+Each factor is tested at two levels, representing the technological limits of the process
+
+We decide to do a $2^{6-2}_{IV}$ unreplicated factorial plan:
+
+```{r}
+lvl <- c(-1, 1)
+df <- expand.grid(A=lvl, B=lvl, C=lvl, D=lvl) %>% 
+  mutate(
+    E = A*B*C,
+    F = B*C*D
+  ) %>% 
+  mutate(
+    across(A:F, ~as.factor(.))
+  )
+df$Y <- c(
+  6, 10, 32, 60,
+  4, 15, 26, 60,
+  8, 12, 43, 60,
+  16, 5, 37, 52
+)
+sum(df$Y)
+```
+
+```{r}
+lvl <- c(-1, 1)
+df <- expand.grid(A=lvl, B=lvl, C=lvl, D=lvl) 
+attach(df) # defining relationships: I=ABCE, I=BCDF
+df$E <- A*B*C
+df$F <- B*C*D
+detach(df)
+for (f in LETTERS[1:6]) df[[f]] <- factor(df[[f]]) 
+df$Y <- c(
+  6, 10, 32, 60,
+  4, 15, 26, 60,
+  8, 12, 43, 60,
+  16, 5, 37, 52
+) 
+sum(df$Y)
+```
+
+
+Being an unreplicated design we apply the Daniel's method:
+
+```{r}
+lm(Y~A*B*C*D*E*F, data=df) %>% 
+  daniels_data() %>%
+  ggplot(aes(sample = value)) +
+  geom_hline(aes(yintercept = value), color = gray(0.7)) +
+  geom_qq() +
+  geom_qq_line() +
+  geom_label(aes(y = value, x = -3., label = term), hjust = "left") +
+  coord_cartesian(xlim = c(-3, 3)) +
+  labs(x = "Theoretical Quantiles", y = "Sample Quantiles")
+```
+
+We revise the model and do the ANOVA:
+
+```{r}
+lm(Y~A*B+A*D + B:D, data=df) %>% anova()
+```
+
+The proper model is thus `Y~A*B+A:D`. Note that the defining relationships `I=ABCE`, `I=BCDF` point out aliases between `A` and `BCE`, `B` and `ACE`, `B` and `CDF`, `AB` and `CE`. Thanks to the sparsity of effects principle, we can pick `A`, `B`, and `AB` over all the higher order effects.
+
+```{r}
+df.lm <- lm(Y~A*B+A:D, data=df)
+anova(df.lm)
+
+df <- df %>% 
+  add_predictions(df.lm) %>% 
+  add_residuals(df.lm)
+
+df %>% ggplot(aes(sample=resid)) + geom_qq() + geom_qq_line()
+df %>% ggplot(aes(x=pred, y=resid)) + geom_point()
+```
+
+```{r}
+df %>% 
+  group_by(A, B, D) %>% 
+  summarise(Y=mean(Y), .groups="keep") %>% 
+  ggplot(aes(x=A, y=Y, group=B, color=B)) + 
+  geom_line() +
+  facet_wrap(vars(D), labeller="label_both")
+
+```
+
+Looking at the interaction plot we can decide to set `A` and `B` both at low level in order to minimize the shrinkage.
+
+It is also interesting to look at the plot of residuals versus factors:
+
+
+```{r}
+df %>% 
+  pivot_longer(A:F, names_to="factor", values_to="level") %>% 
+  ggplot(aes(x=level, y=resid)) +
+  geom_boxplot() +
+  facet_wrap(vars(factor))
+```
+
+
+Among all these plots, only the factor `D` seems to have a pattern: even if the factor alone is not significant, it is evident that keeping `D` at low level reduces the spreading of residuals, which is as to say that it reduces the variability of the process (i.e., the shrinkage has a lower variability at `D` low). So we also select `D` at low level.
+
+
+
