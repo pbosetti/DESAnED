@@ -43,17 +43,17 @@ Each **model** of a physical system or process depends on **parameters**. These 
 
 The operation of *fitting* a model is carried out using **regression**
 
-## Bases
+## Basics
 
 - A model of a physical system can be expressed as:
 $$
      y=f(x_1, x_2, \dots, x_n, c_1, c_2, \dots, c_m)
 $$
-where $x_i$ are the physical (random) variables, called **regressors** or **predictors**, while the $c_i$ are the **parameters** (constant) of the model
+where $x_i$ are the physical (random) variables, called **regressors** or **predictors**, while the $c_i$ are the **parameters** (constant) of the model, and $y$ is the **response** or dependent variable
 
-- If $n=1$ there is a single predictor and the model is called **univariate**, otherwise it is called **multivariate**
+- If $n=1$ there is a single predictor and a single dependent variable we talk about **simple regression**
 
-- For example, $y=a+bx+cx^2$ is a univariate model with parameters $a,~b,~c$
+- For example, $y=a+bx+cx^2$ is a simple linear model with parameters $a,~b,~c$
 
 - **regressing the model** means making measurements of $y$ for different values of $x$ and determining the values of the parameters $a,~b,~c$ that **minimize the distance** between the model and experimental observations
 
@@ -84,7 +84,7 @@ where $i$ is the observation index ($N\geq n+1$ in total), $\hat{y_i}$ is the **
 
 . . .
 
-If the $f(\cdot)$ is an univariate analytical function and linear in the coefficients, then we can express it as $\mathbf{A}\mathbf{k}=\mathbf{y}$, where
+If the $f(\cdot)$ is an analytical function with one predictor and linear in the coefficients, then we can express it as $\mathbf{A}\mathbf{k}=\mathbf{y}$, where
 
 * $\mathbf{y}$ is the vector of $y_i,~i=1\dots N$
 * $\mathbf{k}$ is the vector of parameters $c_j,~j=1\dots n+1$
@@ -114,7 +114,7 @@ This relationship makes clear what is meant by **linear regression**: it has not
 **NOTE**:
 
 - from the previous matrix equation it is clear that the regression can be performed if and only if $N\geq n+1$, i.e. if the number of observations is at least equal to the number of parameters
-- even in the case of a **multivariate** $f(\cdot)$, if it is linear in the coefficients it is always possible to express it as $\mathbf{A}\mathbf{k}=\mathbf{y}$ and therefore solve it with the pseudo-inverse method
+- even in the case of a $f(x_1,x_2,\dots,x_n)$, if it is linear in the coefficients it is always possible to express it as $\mathbf{A}\mathbf{k}=\mathbf{y}$ and therefore solve it with the pseudo-inverse method
 
 ## Example
 

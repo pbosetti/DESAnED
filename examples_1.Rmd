@@ -98,9 +98,9 @@ which means that the probability of finding a value larger than `r qchisq(0.1, 1
 
 # Regression examples
 
-## Univariate data
+## Single predictor
 
-Let's first generate a data frame for a univariate series corresponding to the nominal relationship $y=2x+0.1x^2$, adding a normal noise $\mathcal{N}(0, 2)$:
+Let's first generate a data frame for a data series corresponding to the nominal relationship $y=2x+0.1x^2$, adding a normal noise $\mathcal{N}(0, 2)$:
 
 ```{r}
 set.seed(0)
@@ -167,7 +167,7 @@ df %>%
   geom_line(aes(y=y_nom), lty=2, color="red")
 ```
 
-**IMPORTANT NOTE**: As a shortcut, a polynomial of third degree in the formula can be also written as: `y~poly(x, 3, raw=TRUE)`. If the model is **univariate**, prefer a raw polynomial. If the model is **multivariate**, prefer an orthogonal polynomial, obtained as `poly(x, n)`.
+**IMPORTANT NOTE**: As a shortcut, a polynomial of third degree in the formula can be also written as: `y~poly(x, 3, raw=TRUE)`. If the model has a single independent variable, prefer a raw polynomial; otherwise, prefer an orthogonal polynomial, obtained as `poly(x, n)`.
 
 The next step is to check for normality of residuals. We can do that by looking at the histogram of the residuals, at their Q-Q plot, and by performing a Shapiro-Wilk test.
 
@@ -215,7 +215,7 @@ df %>%
 ```
 
 
-## Multivariate regression
+## More than one predictor
 
 As an example of linear regression of a bivariate quadratic model, we start by creating our own virtual experiment. Firstly, we create a field $\mathbb R^2 \rightarrow \mathbb R$, i.e. a phenomenon (or *process*), where a scalar response variable $y$ depends on two explanatory variables $x_1, x_2$, such that $y=f(x_1, x_2)$.
 

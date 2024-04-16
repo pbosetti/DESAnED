@@ -39,7 +39,7 @@ $\renewcommand{\hat}[1]{\widehat{#1}}$
 $\renewcommand{\tilde}[1]{\widetilde{#1}}$
 $\renewcommand{\theta}{\vartheta}$
 
-**Industrial experiments** often involve numerous factors corresponding to very complex **multivariate models**
+**Industrial experiments** often involve numerous factors corresponding to possibly very complex **models**
 
 It is therefore necessary to **minimize the number of treatments** and, therefore, the cost of the experiment, and yet to obtain **the same information**
 
@@ -77,9 +77,9 @@ In general, an experiment serves to:
 
 ## Dimensionality of an experiment
 
-If the **model of interest is univariate**, the experiment consists of analyzing the response variable at a sequence of levels for the explanatory variable. The number of levels is correlated with the expected degree of the response: for a regression of degree $m$ you need **at least** $l=m+1$ levels
+If the **model of interest si simple** (i.e. one predictor), the experiment consists of analyzing the response variable at a sequence of levels for the explanatory variable. The number of levels is correlated with the expected degree of the response: for a regression of degree $m$ you need **at least** $l=m+1$ levels
 
-But if the model is **multivariate**, i.e. the output depends on $n$ explanatory variables, and each variable is investigated on $l$ levels, then the number of test conditions is $l^n$
+But if the model **has multiple predictors**, i.e. the output depends on $n$ explanatory variables, and each variable is investigated on $l$ levels, then the number of test conditions is $l^n$
 
 If each test condition is then repeated $r$ times (to average the results), the number of individual experiments is $rl^n$
 
@@ -91,7 +91,7 @@ Suppose we have 4 parameters and 4 levels, repeating each test 3 times: the tota
 
 # Factorial plans
 
-If in a univariate experiment the explanatory variable, or [factor]{.bgreen}, takes on a **sequence** of values, in a **multivariate** experiment the $n$ factors take on an $n$-dimensional **grid** of values, called **factorial plan **
+If in an experiment the only explanatory variable, or [factor]{.bgreen}, takes on a **sequence** of values, in a **multidimensional** experiment the $n$ factors take on an $n$-dimensional **grid** of values, called **factorial plan **
 
 
 ## Factorial plan
@@ -539,7 +539,7 @@ Factor plans in which all factors have two levels (low and high, -1 and +1 in co
 * allow you to regress models only of the first degree
 * require minimal testing
 * they still allow to define the sensitivity of the process to the various factors, **excluding non-significant factors**
-* are the starting point of any multivariate analysis of complex processes
+* are the starting point of any analysis of complex processes (i.e. with more than one explanatory variable)
 :::
 
 :::{.column width=40%}
